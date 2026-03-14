@@ -5,14 +5,31 @@ import type { Appointment, ClinicalNote, MedicalRecord, Patient } from "@/types"
 export async function signupUser(input: {
   email: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  role?: "provider" | "patient" | "clinic_admin";
   name?: string;
 }) {
+  const firstName =
+    input.firstName ?? input.name?.split(" ").filter(Boolean)[0] ?? "";
+  const lastName =
+    input.lastName ??
+    input.name?.split(" ").filter(Boolean).slice(1).join(" ") ??
+    "";
+  const fullName = `${firstName} ${lastName}`.trim() || input.name;
+  const normalizedRole = input.role === "clinic_admin" ? "admin" : input.role ?? "provider";
+
   const response = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
       data: {
-        name: input.name,
+        name: fullName,
+        first_name: firstName,
+        last_name: lastName,
+        phone: input.phone,
+        role: input.role ?? "provider",
       },
     },
   });
@@ -21,7 +38,11 @@ export async function signupUser(input: {
     await supabase.from("users").upsert({
       id: response.data.user.id,
       email: input.email,
-      role: "provider",
+      first_name: firstName || null,
+      last_name: lastName || null,
+      full_name: fullName || null,
+      phone: input.phone ?? null,
+      role: normalizedRole,
     });
   }
 
@@ -30,6 +51,16 @@ export async function signupUser(input: {
 
 export async function loginUser(input: { email: string; password: string }) {
   return supabase.auth.signInWithPassword(input);
+}
+
+export async function loginWithOAuth(provider: "google" | "azure") {
+  return supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo:
+        typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined,
+    },
+  });
 }
 
 export async function logoutUser() {

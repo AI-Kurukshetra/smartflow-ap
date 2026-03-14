@@ -1,6 +1,10 @@
 export interface UsersTable {
   id: string;
   email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name?: string | null;
+  phone?: string | null;
   role: "admin" | "provider" | "patient";
   provider_id?: string | null;
   patient_id?: string | null;
